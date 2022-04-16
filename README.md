@@ -95,10 +95,10 @@ nexmap
 ```
 
 ## EXPERIMENTAL FEATURES
-
-Mudlet `lua` is currently 'transpiled' into JavaScript. This is a work in
-progress and will still need a lot of manual intervention to produce something
-working.
-
 Mudlet `.mpackage` files are currently unsupported, but will be at some point
 in the near future.
+
+For Mudlet to Nexus conversions, Lua is currently experimentally being run in
+a [JavaScript VM](https://daurnimator.github.io/lua.vm.js/lua.vm.js.html)(!),
+with a shim from me providing some very basic Mudlet stuff to get things
+running. We'll see how this goes...
