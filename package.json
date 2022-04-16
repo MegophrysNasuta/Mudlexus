@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "lua.vm.js": "^0.0.1"
+  },
+  "devDependencies": {
+    "browserify": "^17.0.0",
+    "standard": "^16.0.4"
+  }
+}
