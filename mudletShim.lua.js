@@ -2,7 +2,9 @@ const lua = {};
 const LuaVM = require('lua.vm.js');
 const L = new LuaVM.Lua.State();
 
-lua.execute = (code) => L.load(code).invoke(slice.call(arguments, 1))
+lua.execute = (code) => {
+  L.load(code).invoke(Array.prototype.slice.call(arguments, 1))
+}
 
 lua.execute(`
 -- table, (c|d|h)echo
