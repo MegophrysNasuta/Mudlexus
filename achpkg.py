@@ -1,36 +1,34 @@
 #! /usr/bin/env python3
-
-import configparser
 import os
 import json
 import re
+import shutil
 import sys
 from xml.etree import ElementTree as ET
 
 
-class NAPTConfig:
-    def __init__(self, filename='.napt.ini'):
-        self.config = configparser.ConfigParser()
-        try:
-            self.config.read(filename)
-        except:
-            pass
-
-    def get_package_description(self, pkg_name):
-        try:
-            pkg_config = self.config['package:%s' % pkg_name]
-        except KeyError:
-            return ''
-        else:
-            return pkg_config and pkg_config.get('description') or ''
-
-
 class PackageExtractor:
+    NUMBERED_JSON_REGEX = re.compile(r'\.?[\d+]*\.json')
+
     def __init__(self, overwrite=False):
         self.overwrite = bool(overwrite)
 
     def _create_dirpath(self, dirpath):
-        os.makedirs(dirpath, exist_ok=self.overwrite)
+        try:
+            os.makedirs(dirpath, exist_ok=False)
+        except FileExistsError:
+            if not self.overwrite:
+                raise
+            shutil.rmtree(dirpath)
+            os.makedirs(dirpath, exist_ok=True)
+
+    def _get_next_available_filename(self, dirpath, filename):
+        i = 1
+        while os.path.exists(os.path.join(dirpath, filename)):
+            filename = self.NUMBERED_JSON_REGEX.sub('.%i.json' % i,
+                                                    filename)
+            i += 1
+        return filename
 
 
 class MudletXMLPackageExtractor(PackageExtractor):
@@ -73,7 +71,7 @@ class MudletXMLPackageExtractor(PackageExtractor):
         else:
             self.write_node(root, dirpath)
 
-    def get_regexes(self, root):
+    def get_matches(self, root):
         trigger_type = {'0': 'substring', '1': 'regexp', '2': 'substring',
                         '3': 'exact', '4': 'lua function',
                         '5': 'line spacer', '6': 'color trigger', '7': 'prompt'}
@@ -110,22 +108,51 @@ class MudletXMLPackageExtractor(PackageExtractor):
                                               .replace('\\', 'Backslash'))
 
         if node.tag == 'Trigger':
-            for text, matching in self.get_regexes(node):
+            matches = list(self.get_matches(node))
+            regexes = [(t, m) for t, m in matches if m == 'regexp']
+            if node.attrib.get('isMultiline') == 'yes':
+                if len(regexes) > 1:
+                    print('='*20)
+                    print('MANUAL REWRITE NEEDED: Multiline, multi-regex trigger')
+                    print(node_info['name'])
+                    print('\n'.join(text for text, _ in regexes))
+                    print('='*20)
+                try:
+                    text, matching = regexes[0]
+                except IndexError:
+                    text, matching = matches[0]
                 node_info.update({'text': text, 'matching': matching})
+            else:
+                # blow this up into multiple nodes
+                node_list = list()
+                for text, matching in matches:
+                    next_node_info = node_info.copy()
+                    next_node_info['text'] = text
+                    next_node_info['matching'] = matching
+                    node_list.append(next_node_info)
+                return node_list
 
         return node_info
 
     def write_node(self, node, dirpath):
-        node_info = self.get_node_info(node)
-        filepath = os.path.join(dirpath, '%s.json' % node_info['name'])
-        with open(filepath, 'w') as filestore:
+        all_node_info = self.get_node_info(node)
+        if type(all_node_info) == list:
+            for node_info in all_node_info:
+                self._write_node(node, dirpath, node_info)
+        else:
+            self._write_node(node, dirpath, all_node_info)
+
+    def _write_node(self, node, dirpath, node_info):
+        filename = '%s.json' % node_info['name']
+        filename = self._get_next_available_filename(dirpath, filename)
+        with open(os.path.join(dirpath, filename), 'w') as filestore:
             filestore.write(json.dumps(node_info, indent=4))
         if node_info.get('actions') and node_info['actions'][0].get('script'):
             script = 'lua.execute(`%s`)' % (
-                self.matches_regex.sub(r'matches(\2)',
+                self.matches_regex.sub(r'js.global.args[\2]',
                                        node_info['actions'][0]['script'])
             )
-            with open(filepath[:-2], 'w') as f:   # .js
+            with open(os.path.join(dirpath, filename[:-2]), 'w') as f:   # .js
                 print('(function() {', file=f)
                 print(script, file=f)
                 print('})()', file=f)
@@ -146,6 +173,8 @@ class NexusNXSPackageExtractor(PackageExtractor):
                 else:
                     filename = '%s%i.json' % (item['type'], item['id'])
 
+                filename = self._get_next_available_filename(dirpath, filename)
+
                 try:
                     code = item.get('code') or tuple((
                         action for action in item.get('actions', ())
@@ -165,12 +194,10 @@ class NexusNXSPackageExtractor(PackageExtractor):
 
 class NexusNXSCompiler:
     def __init__(self, package_name):
-        self.config = NAPTConfig()
         self.package_name = str(package_name)
         self.package_path = os.path.join(os.getcwd(), self.package_name)
         self.package = {
             'name': self.package_name,
-            'description': self.config.get_package_description(self.package_name),
             'id': 1,
             'enabled': True,
             'type': 'group',
@@ -224,6 +251,15 @@ class NexusNXSCompiler:
         items.append(data)
 
     @property
+    def package_description(self):
+        try:
+            with open(os.path.join(self.package_path,
+                                   'description.txt')) as desc:
+                return desc.read()
+        except (IOError, OSError):
+            return ''
+
+    @property
     def package_file(self):
         return '%s.nxs' % self.package_name
 
@@ -234,6 +270,7 @@ class NexusNXSCompiler:
                     self._add_to_package(dirpath, filename)
 
         with open(os.path.join(os.getcwd(), self.package_file), 'w') as pkg_file:
+            self.package['description'] = self.package_description
             pkg_file.write(json.dumps(self.package, indent=4))
 
 
