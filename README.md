@@ -1,5 +1,17 @@
 # Nasuta's [Achaea](https://www.achaea.com/) Package Tools
 
+## `ABANDONED`
+
+Making Mudlet packages port over to Nexus was an interesting experiment
+which ultimately failed because the only Lua VM I could get to run in
+Nexus successfully (lua.vm.js; also tried wasmoon and Fengari) doesn't
+handle globals truly globally -- they don't persist between calls of
+`lua.execute()`. That could be fine under controlled conditions, but most
+Mudlet packages probably won't work this way.
+
+Leaving this in its current state in case anyone else wants to fork and 
+pick up the experiment. I'll keep working on the packaging tool. Cheers!
+
 ## Usage
 
 Just run the script! (by default `./achpkg.py`)
