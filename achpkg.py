@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#!/usr/bin/env python3
 import os
 import json
 import re
@@ -52,6 +52,16 @@ class MudletXMLPackageExtractor(PackageExtractor):
         for pkg_tag in self.PACKAGE_TAGS:
             for section in root.find(pkg_tag) or ():
                 self.extract_section(section, dirpath)
+
+        if os.path.exists('./onLoad.js'):
+            with open(os.path.join(dirpath, 'onLoad.json'), 'w') as file_:
+                file_.write(json.dumps({
+                    'type': 'function',
+                    'name': 'onLoad',
+                    'enabled': True,
+                    'code': '',
+                }, indent=4))
+            shutil.copy('./onLoad.js', dirpath)
 
     def extract_section(self, root, dirpath):
         if dirpath not in self.paths_created:

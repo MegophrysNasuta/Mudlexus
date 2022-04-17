@@ -7,8 +7,6 @@ send_command = js.global.send_command
 display_notice = js.global.display_notice
 reflex_enable = js.global.reflex_enable
 reflex_disable = js.global.reflex_disable
-args = js.global.args
-
 
 --https://wiki.mudlet.org/w/Manual:Basic_Essentials#send
 
