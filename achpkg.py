@@ -220,12 +220,7 @@ class NexusNXSCompiler:
 
     def _add_to_package(self, dirpath, filename):
         with open(os.path.join(dirpath, filename)) as filestore:
-            data = filestore.read()
-
-        try:
-            data = json.loads(data)
-        except json.JSONDecodeError:
-            pass
+            data = json.loads(filestore.read())
 
         try:
             # look for a .js file with the same name as the .json
@@ -261,6 +256,11 @@ class NexusNXSCompiler:
                     })
                     items = items[-1]['items']
                     self.generated_id += 1
+
+        if 'id' not in data:
+            data['id'] = self.generated_id
+            self.generated_id += 1
+
         items.append(data)
 
     @property
