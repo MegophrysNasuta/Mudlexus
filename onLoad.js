@@ -16,8 +16,8 @@ if (typeof lua === 'undefined') {
   const libVer = get_variable('MUDLEXUS_VERSION') || '0.1.1'
 
   getScript(`${libURL}@${libVer}/mudletShim.lua.bundle.js`).then(() => {
-    console.log("Loaded Nasuta's Mudlet Lua shim")
-    console.log(lua.execute('print("Lua is working!")'))
+    console.log(`Loaded Nasuta's Mudlet Lua shim v${libVer}`)
+    lua.execute('print("Lua is working!")')
   }).catch((e) => {
     console.error(`Could not load Mudlet Lua shim: ${e}`)
   })

@@ -127,6 +127,7 @@ class MudletXMLPackageExtractor(PackageExtractor):
                     print(node_info['name'])
                     print('\n'.join(text for text, _ in regexes))
                     print('='*20)
+                    return None
                 try:
                     text, matching = regexes[0]
                 except IndexError:
@@ -146,7 +147,9 @@ class MudletXMLPackageExtractor(PackageExtractor):
 
     def write_node(self, node, dirpath):
         all_node_info = self.get_node_info(node)
-        if type(all_node_info) == list:
+        if all_node_info is None:
+            return
+        elif type(all_node_info) == list:
             for node_info in all_node_info:
                 self._write_node(node, dirpath, node_info)
         else:
