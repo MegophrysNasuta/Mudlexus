@@ -13,7 +13,7 @@ if (typeof lua === 'undefined') {
   }
 
   const libURL = 'https://cdn.jsdelivr.net/gh/MegophrysNasuta/Mudlexus'
-  const libVer = get_variable('MUDLEXUS_VERSION') || '0.1.3'
+  const libVer = get_variable('MUDLEXUS_VERSION') || '0.1.4'
 
   getScript(`${libURL}@${libVer}/mudletShim.lua.bundle.js`).then(() => {
     console.log(`Loaded Nasuta's Mudlet Lua shim v${libVer}`)
